@@ -184,13 +184,18 @@ def display_versions(versions, output_format="text"):
     print("-" * 80)
     
     for version in sorted_versions:
-        version_id = version.get("id", "N/A")
-        name = version.get("name", "N/A")
-        released = "Yes" if version.get("released", False) else "No"
-        release_date = version.get("releaseDate", "N/A")
-        description = version.get("description", "")
-        
-        print(f"{version_id:<10} {name:<20} {released:<10} {release_date:<12} {description}")
+        print_version(version)
+
+def print_version(version, output_format="text"):
+    if output_format == "json":
+        print(json.dumps(version, indent=2))
+        return
+    version_id = version.get("id", "N/A")
+    name = version.get("name", "N/A")
+    released = "Yes" if version.get("released", False) else "No"
+    release_date = version.get("releaseDate", "N/A")
+    description = version.get("description", "")    
+    print(f"{version_id:<10} {name:<20} {released:<10} {release_date:<12} {description}")
 
 
 def main():
@@ -212,7 +217,19 @@ def main():
     # Otherwise, just show all releases
     else:
         versions = get_project_versions(args.url, args.project_key, args.user, args.token)
-        display_versions(versions, args.format)
+        if args.list_issues:
+            sorted_versions = sorted(
+                versions,
+                key=lambda v: v.get("releaseDate", "9999-99-99") if v.get("releaseDate") else "9999-99-99"
+            )
+            for version in sorted_versions:
+                print_version(version, args.format)
+                issues = get_issues_for_version(args.url, args.project_key, version["id"], args.user, args.token)
+                display_issues(issues, args.format)
+            else:
+                print(f"No release found with ID {args.release_id}.")
+        else:
+               display_versions(versions, args.format)     
 
 
 if __name__ == "__main__":
